@@ -1,18 +1,18 @@
-from threading import Thread
-import os
 import paramiko as pmk
+from threading import Thread
+import os       
 import socket
 import stat
 import hashlib
+from datetime import date, timedelta 
 
-class IP_DB_Copier:
-
+class Daily_IP_DB_Copier:
     def __init__(self, device_name_list, device_ip_list, base_local_dir):
         self.device_name_list = device_name_list
         self.device_ip_list = device_ip_list
         self.base_local_dir = base_local_dir
-
-    def connect_to_SGPhone(self): 
+    
+    def connect_to_SGPhone(self):
         os.makedirs(self.base_local_dir, exist_ok=True)
         # Creating threads for each device connection
         threads = []
@@ -28,7 +28,7 @@ class IP_DB_Copier:
             print(f"Connecting to device {phone_name} at IP {ip}")
             username = "g188"
             password = "1470"
-            phone_source_folder = r"/Documents"
+            phone_source_folder = r"/Documents/Daily"
             client = pmk.SSHClient()
             client.set_missing_host_key_policy(pmk.AutoAddPolicy())
             local_dir = os.path.join(self.base_local_dir, phone_name)
@@ -58,24 +58,30 @@ class IP_DB_Copier:
     def go_through_folders(self, sftp, local_dir, phone_source_folder):
         # Looping inside the dates of the file.  
         for date_folder in sftp.listdir_attr(phone_source_folder):
-            # Checks if the remote item (date_file) is a DIRECTORY!!!
             if stat.S_ISDIR(date_folder.st_mode):
-                db_folder = f"{phone_source_folder}/{date_folder.filename}"
-                # Loops the date_folders
-                for item in sftp.listdir_attr(db_folder):
-                    # Checks if the remote item (db_file) is a DIRECTORY!!! & and named "SQLite".
-                    if item.filename == "SQLite" and stat.S_ISDIR(item.st_mode):
-                        SQLite_file = f"{db_folder}/{item.filename}"
-                        # Loops the SQLite folder.
-                        for Galshan_db in sftp.listdir_attr(SQLite_file):
-                            # Checks if the files name is "Galshan.db".
-                            if Galshan_db.filename == "Galshan.db":
-                                remote_db = f"{SQLite_file}/{Galshan_db.filename}"
-                                if date_folder.filename[0:5] != '20**-':
-                                    date_organizer = f"{"-".join(date_folder.filename.split('-')[::-1])}"
-                                local_db = os.path.join(local_dir, f"{date_organizer}_{Galshan_db.filename}")
-                                self.copy_and_check_db(sftp, local_db, remote_db)
+                date_folder_name = date_folder.filename
+                remote_date_folder_path = f"{phone_source_folder}/{date_folder_name}"
+                local_date_folder_path = os.path.join(local_dir, date_folder_name)
+                os.makedirs(local_date_folder_path, exist_ok=True)
+                today_str = str(date.today())
+                yesterday = str(date.today() - timedelta(days=1))
+                two_days_ago = date.today() - timedelta(days=2)
+                if date_folder_name == today_str or date_folder_name == yesterday or date_folder_name == two_days_ago:
+                    # Looping inside the files of the date folder.
+                    for file_attr in sftp.listdir_attr(remote_date_folder_path):
+                        file_name = file_attr.filename
+                        if file_name.endswith("Galshan.db"):
+                            remote_file_path = f"{remote_date_folder_path}/{file_name}"
+                            local_file_path = os.path.join(local_date_folder_path, file_name)
 
+                            try:
+                                sftp.get(remote_file_path, local_file_path)
+                                print(f"Copied {remote_file_path} to {local_file_path}")
+                            except Exception as e:
+                                print(f"Failed to copy {remote_file_path} to {local_file_path}: {e}")
+                else: 
+                    print(f"Skipping folder: {date_folder_name}; not in the last 3 days.")
+    
     def copy_and_check_db(self, sftp, local_db, remote_db):
         print(f"Checking if {local_db} is already copied or not...")
         
@@ -96,31 +102,27 @@ class IP_DB_Copier:
             print(f"✓ Successfully copied {remote_db} to {local_db}")
 
     def get_remote_file_checksum(self, sftp, remote_file):
-        """Calculate MD5 checksum of remote file"""
         try:
-            with sftp.file(remote_file, 'r') as f:
-                md5 = hashlib.md5()
-                while True:
-                    data = f.read(4096)
-                    if not data:
-                        break
-                    md5.update(data)
-                return md5.hexdigest()
+            md5 = hashlib.md5()
+            with sftp.file(remote_file, "rb") as f:
+                try:
+                    f.prefetch()
+                except Exception:
+                    pass
+
+                for chunk in iter(lambda: f.read(65536), b""):
+                    md5.update(chunk)
+
+            return md5.hexdigest()
+
         except Exception as e:
             print(f"Error calculating remote checksum for {remote_file}: {e}")
             return None
 
     def get_local_file_checksum(self, local_file):
-        """Calculate MD5 checksum of local file"""
         try:
-            md5 = hashlib.md5()
-            with open(local_file, 'rb') as f:
-                while True:
-                    data = f.read(4096)
-                    if not data:
-                        break
-                    md5.update(data)
-            return md5.hexdigest()
+            with open(local_file, "rb") as f:
+                return hashlib.file_digest(f, "md5").hexdigest()
         except Exception as e:
             print(f"Error calculating local checksum for {local_file}: {e}")
             return None

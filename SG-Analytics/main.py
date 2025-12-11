@@ -1,18 +1,27 @@
 import argparse
 from DB_Connector import DBConnector as dbc
-from Month_Day_Separation import MonthDaySeparation as mds
 from ip_db_copier import IP_DB_Copier as ipdc
+from daily_ip_db_copier import Daily_IP_DB_Copier as dipdc
 import openpyxl
+import os
 import pandas as pd
 import paramiko as pmk
+from datetime import datetime
 
 
 def parse_device():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--device_IP", nargs='+', required=True,
-                        help="IP address of the SG devices")
-    args = parser.parse_args()
-    device_IPs = args.device_IP
+    device_IPs = [ 
+        # "SG9=2.54.238.146:51807",
+        # "SG20=109.253.65.75:51807",
+        # "SG21=2.54.89.11:51807",
+        "SG23=2.54.238.136:51807",
+        # "SG24=2.55.117.174:51807",
+        "SG25=2.54.88.254:51807",
+        "SG26=2.54.89.1:51807",
+        # "SG28=2.54.89.8:51807",
+        # "SG29=2.54.89.3:51807",
+        # "SG44=2.54.89.4:51807"
+        ]
     devices = {}
     for item in device_IPs:
         name, ip = item.split('=', 1)
@@ -24,9 +33,14 @@ if __name__ == "__main__":
     devices = parse_device()
     dnl = list(devices.keys())
     dipl = list(devices.values())
-    ipdc = ipdc(dnl, dipl)
-    ipdc.connect_to_SGPhone()
-    # connector = dbc()
-    # connector.load_databases()  # fills df and writes data.csv
-    # connector.save_csv('data.csv')  # saves data.csv
-    # connector.save_excel('data.xlsx')  # saves data.xlsx
+    base_local_dir = r"C:\SG_Devices_DBs"
+    if not os.path.exists(base_local_dir):
+        ipdc = ipdc(dnl, dipl, base_local_dir)
+        ipdc.connect_to_SGPhone()
+    else:
+        dipdc = dipdc(dnl, dipl, base_local_dir)
+        dipdc.connect_to_SGPhone()
+    db_connector = dbc(base_local_dir)
+    db_connector.load_databases()  # fills df and writes data.csv
+    db_connector.save_csv('data_csv.csv')  # saves data.csv
+    db_connector.save_excel('data_excel.xlsx')  # saves data.xlsx

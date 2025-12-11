@@ -1,26 +1,30 @@
-import sqlite3
-import pandas as pd
 import csv
-import os
 import glob
 import openpyxl
+import os
+import pandas as pd
 from pathlib import Path
+import sqlite3
+
 
 
 BASE_DIR = Path(__file__).resolve().parent
 
 
 class DBConnector:
-    def __init__(self, df):
-        self.df = df
+    
+    def __init__(self, base_local_dir):
+        self.base_local_dir = base_local_dir
+        self.df = pd.DataFrame(
+            columns=['Database_Name', 'Max_Temperature', 'Time_of_Max_Temperature', 'Number_of_Detections'])
 
     def load_databases(self):
         # Connecting to each DB in the list.
         # Define the database connector pattern with wildcards
-        db_connector_pattern = r"C:\Users\user\Desktop\Yakir Avner\DBTraining\Galshan*\Galshan*DB"
-        print(f"db_connector_pattern: {db_connector_pattern}")
+        print(f"db_connector_pattern: {self.base_local_dir}")
         db_files = glob.glob(os.path.join(
-            db_connector_pattern, '**', 'Galshan*.db'), recursive=True)
+            self.base_local_dir, '**', '**Galshan.db'), recursive=True)
+        print(f"db_files found: {db_files}")
         for dbName in db_files:
             try:
                 conn = sqlite3.connect(dbName)
@@ -32,22 +36,26 @@ class DBConnector:
                     num_of_detections = conn.cursor()
 
                     # MT abbreviation: Max Temperature.
-                    MT = max_temperature.execute(
-                        "SELECT MAX(Device_Temperature) from Snapshots;").fetchone()[0]
+                    mt_result = max_temperature.execute(
+                        "SELECT MAX(Device_Temperature) from Snapshots;").fetchone()
+                    MT = mt_result[0] if mt_result and mt_result[0] is not None else "N/A"
 
                     # TMT abbreviation: Time of Max Temperature.
-                    TMT = time_max_temperature.execute("""
+                    tmt_result = time_max_temperature.execute("""
                                                         SELECT time
                                                         FROM Snapshots
                                                         WHERE device_temperature = (SELECT MAX(device_temperature) FROM Snapshots)
                                                                 LIMIT 1;
-                                                        """).fetchone()[0]
+                                                        """).fetchone()
+                    TMT = tmt_result[0] if tmt_result else "N/A"
+                    
                     # Counting the number of detections.
-                    num_of_detections = num_of_detections.execute(
-                        "SELECT COUNT(*) from Detections").fetchone()[0]
+                    det_result = num_of_detections.execute(
+                        "SELECT COUNT(*) from Detections").fetchone()
+                    num_of_detections = det_result[0] if det_result else 0
 
                     self.df.loc[len(self.df)] = [dbName, MT,
-                                                 TMT, num_of_detections]
+                                                  TMT, num_of_detections]
             except sqlite3.Error as e:
                 print(f"Failed to connect to SQLite db: {dbName}")
             finally:

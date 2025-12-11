@@ -1,0 +1,29 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "--SG_IP",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "C:\\Users\\Yakir\\SmartGalshanAnalytics-v0.0.4-\\SG-Analytics\\debugging_main.py",
+            "cwd": "C:\\Users\\Yakir\\SmartGalshanAnalytics-v0.0.4-\\SG-Analytics",
+            "console": "integratedTerminal",
+            "args": [
+                "--device_IP", 
+                // "SG9=2.54.238.146:51807",
+                // "SG20=109.253.65.75:51807",
+                // "SG21=2.54.89.11:51807",
+                "SG23=2.54.238.136:51807",
+                // "SG24=2.55.117.174:51807",
+                "SG25=2.54.88.254:51807",
+                "SG26=2.54.89.1:51807",
+                // "SG28=2.54.89.8:51807",
+                // "SG29=2.54.89.3:51807",
+                // "SG44=2.54.89.4:51807"
+            ]
+        }
+    ]
+}
