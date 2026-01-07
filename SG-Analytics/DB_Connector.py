@@ -69,9 +69,9 @@ class DBConnector:
         self.df.to_csv(this_filename, index=False,
                        mode='a' if exists else 'w', header=not exists)
 
-    def save_excel(self, this_filename):
+    def save_excel(self, excel_filename):
         # this_filename = to the current directory + filename
-        this_filename = BASE_DIR / this_filename
+        this_filename = BASE_DIR / excel_filename
         exists = this_filename.exists()
         if not exists:
             # Create a new Excel file
@@ -79,6 +79,12 @@ class DBConnector:
                 self.df.to_excel(writer, index=False)
         else:
             # Append data to existing Excel file
-            with pd.ExcelWriter(this_filename, mode='a', engine='openpyxl', if_sheet_exists='overlay') as writer:
-                self.df.to_excel(writer, index=False, header=False,
-                                 startrow=writer.sheets['Sheet1'].max_row)
+            with pd.ExcelWriter(this_filename, engine='openpyxl', if_sheet_exists='overlay') as writer:
+                for row in self.df.iterrows():
+                    if row not in this_filename:
+                        self.df.append(row)
+                    else:
+                        print(f"Row {row} already exists in the Excel file. Skipping append.") 
+            # with pd.ExcelWriter(this_filename, mode='a', engine='openpyxl', if_sheet_exists='overlay') as writer:
+            #     self.df.to_excel(writer, index=False, header=False,
+            #                      startrow=writer.sheets['Sheet1'].max_row)

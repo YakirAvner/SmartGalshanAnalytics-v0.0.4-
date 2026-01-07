@@ -28,7 +28,7 @@ class Daily_IP_DB_Copier:
             print(f"Connecting to device {phone_name} at IP {ip}")
             username = "g188"
             password = "1470"
-            phone_source_folder = r"/Documents/Daily"
+            phone_source_folder = r"/Documents"
             client = pmk.SSHClient()
             client.set_missing_host_key_policy(pmk.AutoAddPolicy())
             local_dir = os.path.join(self.base_local_dir, phone_name)
@@ -65,7 +65,7 @@ class Daily_IP_DB_Copier:
                 os.makedirs(local_date_folder_path, exist_ok=True)
                 today_str = str(date.today())
                 yesterday = str(date.today() - timedelta(days=1))
-                two_days_ago = date.today() - timedelta(days=2)
+                two_days_ago = str(date.today() - timedelta(days=2))
                 if date_folder_name == today_str or date_folder_name == yesterday or date_folder_name == two_days_ago:
                     # Looping inside the files of the date folder.
                     for file_attr in sftp.listdir_attr(remote_date_folder_path):
